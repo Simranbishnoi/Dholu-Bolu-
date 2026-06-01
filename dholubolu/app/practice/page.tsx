@@ -15,6 +15,11 @@ export default function PracticePage() {
   const [mascotState, setMascotState] = useState<"greeting" | "listening" | "happy" | "thinking" | "confused">("greeting");
   const [mascotPhrase, setMascotPhrase] = useState("");
 
+  // Text to Speech States
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [speechRate, setSpeechRate] = useState<number>(1.0);
+
   // Get matching phrase array based on script (Latin if no language selected, Devanagari if language selected)
   const getPhrases = (isLangSelected: boolean) => {
     return isLangSelected ? haryanviPhrases.devanagari : haryanviPhrases.latin;
@@ -25,7 +30,6 @@ export default function PracticePage() {
     const daily = getDailyChallenge();
     setDailyChallenge(daily);
 
-    // Safe client-side reading of URL parameters to avoid SSR/Suspense warnings
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const langParam = params.get("lang");
@@ -46,11 +50,27 @@ export default function PracticePage() {
       }
     }
 
-    // Default welcoming state if no params loaded
     const welcomes = haryanviPhrases.latin.welcome;
     setMascotPhrase(welcomes[0]);
     setMascotState("greeting");
   }, []);
+
+  // Cancel speech on unmount or active twister change
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined" && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      setIsPlaying(false);
+      setIsPaused(false);
+    }
+  }, [activeTwister]);
 
   // Update Mascot when language is explicitly selected
   const handleLanguageSelect = (lang: "english" | "hindi") => {
@@ -72,7 +92,6 @@ export default function PracticePage() {
 
   // Phase 4: Surprise Me (Random Selector)
   const handleSurpriseMe = () => {
-    // If no language is selected, pick one randomly first
     let currentLang = selectedLanguage;
     if (!currentLang) {
       currentLang = Math.random() > 0.5 ? "english" : "hindi";
@@ -83,29 +102,119 @@ export default function PracticePage() {
     const randomTwister = list[Math.floor(Math.random() * list.length)];
     setActiveTwister(randomTwister);
 
-    // Reaction
     const phrases = haryanviPhrases.devanagari;
     const achievements = phrases.achievement_unlock;
     setMascotPhrase(achievements[Math.floor(Math.random() * achievements.length)]);
     setMascotState("happy");
   };
 
-  // Phase 5: Load Daily Challenge in practice space
+  // Phase 5: Load Daily Challenge
   const handleLoadDailyChallenge = () => {
     if (!dailyChallenge) return;
     setSelectedLanguage(dailyChallenge.language);
     setActiveTwister(dailyChallenge.twister);
 
-    const phrases = haryanviPhrases.devanagari;
     setMascotPhrase("राम राम! आज का डेली चैलेंज लोड हो गया सै। जमा साफ बोलियो!");
     setMascotState("thinking");
+  };
+
+  // Phase 6: Text To Speech (TTS) Controls
+  const handleTTSPlay = () => {
+    if (!activeTwister || typeof window === "undefined" || !window.speechSynthesis) return;
+
+    const synth = window.speechSynthesis;
+
+    if (isPaused) {
+      synth.resume();
+      setIsPaused(false);
+      setIsPlaying(true);
+      setMascotState("listening");
+      return;
+    }
+
+    synth.cancel(); // Cancel any existing speech
+
+    const utterance = new SpeechSynthesisUtterance(activeTwister.text);
+    const voices = synth.getVoices();
+    
+    // Attempt to locate correct regional voice accent
+    let matchedVoice = null;
+    if (selectedLanguage === "hindi") {
+      matchedVoice = voices.find(v => v.lang.startsWith("hi")) || null;
+    } else {
+      matchedVoice = voices.find(v => v.lang.startsWith("en")) || null;
+    }
+
+    if (matchedVoice) {
+      utterance.voice = matchedVoice;
+    }
+
+    utterance.rate = speechRate;
+
+    utterance.onstart = () => {
+      setIsPlaying(true);
+      setIsPaused(false);
+      setMascotState("listening");
+      setMascotPhrase(
+        selectedLanguage === "hindi"
+          ? "राम राम! ध्यान ते सुनियो, मैं बोलूं सूँ।"
+          : "Ram Ram! Listen carefully, I am speaking now."
+      );
+    };
+
+    utterance.onend = () => {
+      setIsPlaying(false);
+      setIsPaused(false);
+      setMascotState("happy");
+      setMascotPhrase(
+        selectedLanguage === "hindi"
+          ? "लो भाई, अब थारी बारी! रिकॉर्ड दबाओ।"
+          : "Now it's your turn! Press record."
+      );
+    };
+
+    utterance.onerror = () => {
+      setIsPlaying(false);
+      setIsPaused(false);
+      setMascotState("greeting");
+    };
+
+    synth.speak(utterance);
+  };
+
+  const handleTTSPause = () => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    if (isPlaying && !isPaused) {
+      window.speechSynthesis.pause();
+      setIsPaused(true);
+      setIsPlaying(false);
+      setMascotState("thinking");
+      setMascotPhrase(
+        selectedLanguage === "hindi"
+          ? "रोक दिया भाई! दोबारा सुनना हो तो प्ले करियो।"
+          : "Paused! Press play to resume."
+      );
+    }
+  };
+
+  const handleTTSStop = () => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    setIsPlaying(false);
+    setIsPaused(false);
+    setMascotState("thinking");
+    setMascotPhrase(
+      selectedLanguage === "hindi"
+        ? "रोक दिया सै। फेर ते शुरू करांगे।"
+        : "Stopped. Let's start again."
+    );
   };
 
   const twistersToDisplay = selectedLanguage === "english" ? englishTwisters : selectedLanguage === "hindi" ? hindiTwisters : [];
 
   return (
     <div className="flex flex-col flex-1 bg-zinc-950 text-white min-h-[calc(100vh-4rem)] p-6 relative pb-16">
-      {/* Background glow effects */}
+      {/* Background glows */}
       <div className="absolute top-1/3 left-1/4 w-[350px] h-[350px] bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
       <div className="absolute bottom-1/4 right-1/4 w-[350px] h-[350px] bg-purple-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -138,7 +247,7 @@ export default function PracticePage() {
           </div>
         )}
 
-        {/* Mascot & Instructions Section */}
+        {/* Mascot Section */}
         <div className="flex flex-col items-center mb-8 w-full">
           <Mascot state={mascotState} phrase={mascotPhrase} />
         </div>
@@ -146,7 +255,6 @@ export default function PracticePage() {
         {/* Phase 3: Language Selectors & Shuffle */}
         <div className="flex flex-col items-center w-full max-w-2xl mb-12">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full mb-6">
-            {/* English Selector */}
             <button
               onClick={() => handleLanguageSelect("english")}
               className={`group flex flex-col items-center justify-center p-6 rounded-2xl border text-center transition-all duration-300 ${
@@ -163,7 +271,6 @@ export default function PracticePage() {
               </span>
             </button>
 
-            {/* Hindi Selector */}
             <button
               onClick={() => handleLanguageSelect("hindi")}
               className={`group flex flex-col items-center justify-center p-6 rounded-2xl border text-center transition-all duration-300 ${
@@ -181,7 +288,6 @@ export default function PracticePage() {
             </button>
           </div>
 
-          {/* Phase 4: Surprise Me Button */}
           <button
             onClick={handleSurpriseMe}
             className="flex items-center justify-center gap-2 px-6 h-11 rounded-xl bg-white/5 border border-white/10 text-sm font-semibold hover:bg-white/10 text-indigo-300 hover:text-white transition-all shadow-md w-full sm:w-auto"
@@ -190,7 +296,7 @@ export default function PracticePage() {
           </button>
         </div>
 
-        {/* Selected Twister Workspace (Visual Scaffolding) */}
+        {/* Selected Twister Workspace */}
         {activeTwister && (
           <div className="w-full max-w-2xl rounded-2xl border border-white/10 bg-zinc-900/40 p-8 backdrop-blur-md shadow-2xl mb-12 flex flex-col items-center text-center animate-fade-in">
             <div className="flex items-center justify-between w-full border-b border-white/5 pb-4 mb-6">
@@ -209,13 +315,73 @@ export default function PracticePage() {
               "{activeTwister.text}"
             </p>
 
-            <div className="flex gap-4">
-              <button className="h-10 px-6 rounded-xl bg-zinc-800 border border-white/5 hover:bg-zinc-700 transition-all text-sm font-semibold text-zinc-300">
-                🔊 Read Aloud (TTS)
-              </button>
-              <button className="h-10 px-6 rounded-xl bg-gradient-to-r from-red-500 to-rose-600 hover:opacity-90 transition-all text-sm font-semibold text-white shadow-lg shadow-red-500/10">
-                🎙️ Start Recording (Whisper)
-              </button>
+            {/* TTS & Speech Controls Workspace */}
+            <div className="w-full border-t border-white/5 pt-6 flex flex-col gap-6 items-center">
+              {/* TTS Controls Panel */}
+              <div className="flex flex-wrap items-center justify-center gap-4 bg-zinc-950/80 p-3 rounded-xl border border-white/5 w-full max-w-md">
+                
+                {/* Play / Pause Toggle Button */}
+                {!isPlaying && !isPaused ? (
+                  <button
+                    onClick={handleTTSPlay}
+                    className="flex h-9 items-center justify-center gap-1.5 rounded-lg bg-indigo-500 hover:bg-indigo-600 px-4 text-xs font-bold text-white transition-colors"
+                  >
+                    <span>🔊</span> Play Pronunciation
+                  </button>
+                ) : isPlaying ? (
+                  <button
+                    onClick={handleTTSPause}
+                    className="flex h-9 items-center justify-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 px-4 text-xs font-bold text-zinc-950 transition-colors animate-pulse"
+                  >
+                    <span>⏸️</span> Pause Speech
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleTTSPlay}
+                    className="flex h-9 items-center justify-center gap-1.5 rounded-lg bg-indigo-500 hover:bg-indigo-600 px-4 text-xs font-bold text-white transition-colors"
+                  >
+                    <span>▶️</span> Resume Speech
+                  </button>
+                )}
+
+                {/* Stop / Reset Button */}
+                {(isPlaying || isPaused) && (
+                  <button
+                    onClick={handleTTSStop}
+                    className="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-white/5 transition-colors"
+                    title="Stop and Reset"
+                  >
+                    ⏹️
+                  </button>
+                )}
+
+                {/* Speech Speed (Rate) Selector */}
+                <div className="flex items-center gap-1 border-l border-white/10 pl-3">
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wide mr-1">Speed</span>
+                  {[0.75, 1.0, 1.25].map((rate) => (
+                    <button
+                      key={rate}
+                      onClick={() => setSpeechRate(rate)}
+                      disabled={isPlaying || isPaused}
+                      className={`text-[10px] font-semibold px-2 py-1 rounded-md transition-all ${
+                        speechRate === rate
+                          ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30"
+                          : "text-zinc-400 hover:text-white border border-transparent disabled:opacity-50"
+                      }`}
+                    >
+                      {rate}x
+                    </button>
+                  ))}
+                </div>
+
+              </div>
+
+              {/* Voice Recording Button Scaffolding (Phase 7 target) */}
+              <div className="w-full flex justify-center">
+                <button className="h-12 w-full max-w-xs rounded-xl bg-gradient-to-r from-red-500 to-rose-600 hover:opacity-90 transition-all text-sm font-semibold text-white shadow-lg shadow-red-500/10 flex items-center justify-center gap-2">
+                  🎙️ Start Voice Recording
+                </button>
+              </div>
             </div>
           </div>
         )}
