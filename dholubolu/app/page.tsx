@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Mascot from "./components/DolphinMascot";
 import { haryanviPhrases } from "./data/haryanvi_phrases";
+import { getDailyChallenge, DailyChallengeInfo } from "./utils/dailyChallenge";
 
 export default function Home() {
   const [welcomePhrase, setWelcomePhrase] = useState("");
   const [signaturePhrase, setSignaturePhrase] = useState("");
+  const [daily, setDaily] = useState<DailyChallengeInfo | null>(null);
 
   useEffect(() => {
     // Choose random welcome and signature phrase in Latin script on load
@@ -16,20 +18,23 @@ export default function Home() {
     
     setWelcomePhrase(welcomes[Math.floor(Math.random() * welcomes.length)]);
     setSignaturePhrase(signatures[Math.floor(Math.random() * signatures.length)]);
+    
+    // Set daily challenge
+    setDaily(getDailyChallenge());
   }, []);
 
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-950 text-white overflow-hidden relative min-h-[calc(100vh-4rem)]">
+    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-950 text-white overflow-hidden relative min-h-[calc(100vh-4rem)] pb-12">
       {/* Decorative background glows */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
       <div className="absolute bottom-10 right-10 w-[300px] h-[300px] bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
-      <div className="relative z-10 mx-auto max-w-5xl px-6 py-12 text-center flex flex-col items-center">
+      <div className="relative z-10 mx-auto max-w-5xl px-6 py-8 text-center flex flex-col items-center">
         {/* Animated Dolphin Mentor */}
         <Mascot state="greeting" phrase={welcomePhrase || "Ram Ram Bhai!"} />
 
         {/* Hero Title */}
-        <h1 className="text-4xl font-extrabold tracking-tight sm:text-6xl bg-gradient-to-b from-white via-zinc-200 to-zinc-500 bg-clip-text text-transparent max-w-3xl leading-[1.15] mb-4 mt-4">
+        <h1 className="text-4xl font-extrabold tracking-tight sm:text-6xl bg-gradient-to-b from-white via-zinc-200 to-zinc-500 bg-clip-text text-transparent max-w-3xl leading-[1.15] mb-3 mt-4">
           Unleash Your Tongue with{" "}
           <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
             AI-Powered
@@ -42,12 +47,8 @@ export default function Home() {
           "{signaturePhrase || "Ram Ram! Bol saaf, ban laajawab."}"
         </p>
 
-        <p className="max-w-2xl text-base sm:text-lg text-zinc-400 leading-relaxed mb-10">
-          Learn, practice, and master speech clarity with English and Hindi tongue twisters. Receive real-time pronunciation accuracy scores with Haryanvi feedback.
-        </p>
-
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-16">
+        <div className="flex flex-col sm:flex-row gap-4 mb-12">
           <Link
             href="/practice"
             className="flex h-12 items-center justify-center rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 px-8 text-sm font-semibold text-white shadow-lg shadow-purple-500/20 hover:scale-[1.02] hover:shadow-purple-500/40 transition-all duration-300"
@@ -61,6 +62,35 @@ export default function Home() {
             View Dashboard
           </Link>
         </div>
+
+        {/* Phase 5: Daily Challenge Hero Card */}
+        {daily && (
+          <div className="w-full max-w-2xl rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-6 backdrop-blur-md shadow-2xl mb-16 text-left flex flex-col sm:flex-row items-center gap-6 justify-between hover:border-indigo-500/40 transition-all duration-300">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="animate-pulse flex h-2 w-2 rounded-full bg-indigo-400"></span>
+                <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest">
+                  Today's Daily Challenge
+                </span>
+                <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full font-bold">
+                  {daily.language === "english" ? "English" : "Hindi"}
+                </span>
+                <span className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full font-bold">
+                  {daily.twister.difficulty}
+                </span>
+              </div>
+              <p className="text-lg font-semibold text-zinc-100 italic line-clamp-2">
+                "{daily.twister.text}"
+              </p>
+            </div>
+            <Link
+              href={`/practice?lang=${daily.language}&id=${daily.twister.id}`}
+              className="h-10 px-5 rounded-lg bg-indigo-500 hover:bg-indigo-600 transition-colors text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-indigo-500/20 whitespace-nowrap w-full sm:w-auto"
+            >
+              Accept Challenge ⚡
+            </Link>
+          </div>
+        )}
 
         {/* Features Preview Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full text-left">

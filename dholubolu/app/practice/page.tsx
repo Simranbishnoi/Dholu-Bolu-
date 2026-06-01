@@ -4,103 +4,189 @@ import { useState, useEffect } from "react";
 import Mascot from "../components/DolphinMascot";
 import { haryanviPhrases } from "../data/haryanvi_phrases";
 import { englishTwisters, hindiTwisters, Twister } from "../data/twisters";
+import { getDailyChallenge, DailyChallengeInfo } from "../utils/dailyChallenge";
 
 export default function PracticePage() {
   const [selectedLanguage, setSelectedLanguage] = useState<"english" | "hindi" | null>(null);
   const [activeTwister, setActiveTwister] = useState<Twister | null>(null);
-  
+  const [dailyChallenge, setDailyChallenge] = useState<DailyChallengeInfo | null>(null);
+
   // Mascot state: greeting, listening, happy, thinking, confused
   const [mascotState, setMascotState] = useState<"greeting" | "listening" | "happy" | "thinking" | "confused">("greeting");
   const [mascotPhrase, setMascotPhrase] = useState("");
 
   // Get matching phrase array based on script (Latin if no language selected, Devanagari if language selected)
-  const getPhrases = () => {
-    return selectedLanguage ? haryanviPhrases.devanagari : haryanviPhrases.latin;
+  const getPhrases = (isLangSelected: boolean) => {
+    return isLangSelected ? haryanviPhrases.devanagari : haryanviPhrases.latin;
   };
 
+  // Load Daily Challenge and check URL params on mount
   useEffect(() => {
-    const phrases = getPhrases();
-    if (!selectedLanguage) {
-      // Default Latin welcome
-      const welcomes = phrases.welcome;
-      setMascotPhrase(welcomes[0]); // "Ram Ram Bhai!..."
-      setMascotState("greeting");
-    } else {
-      // Devanagari response when language selected
-      const beforeRecs = phrases.before_recording;
-      setMascotPhrase(beforeRecs[Math.floor(Math.random() * beforeRecs.length)]);
-      setMascotState("thinking");
-    }
-  }, [selectedLanguage]);
+    const daily = getDailyChallenge();
+    setDailyChallenge(daily);
 
+    // Safe client-side reading of URL parameters to avoid SSR/Suspense warnings
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const langParam = params.get("lang");
+      const idParam = params.get("id");
+
+      if (langParam === "english" || langParam === "hindi") {
+        setSelectedLanguage(langParam);
+        const list = langParam === "english" ? englishTwisters : hindiTwisters;
+        const idVal = parseInt(idParam || "", 10);
+        const match = list.find(t => t.id === idVal);
+        if (match) {
+          setActiveTwister(match);
+          setMascotState("happy");
+          const highScores = haryanviPhrases.devanagari.high_score;
+          setMascotPhrase(highScores[Math.floor(Math.random() * highScores.length)]);
+          return;
+        }
+      }
+    }
+
+    // Default welcoming state if no params loaded
+    const welcomes = haryanviPhrases.latin.welcome;
+    setMascotPhrase(welcomes[0]);
+    setMascotState("greeting");
+  }, []);
+
+  // Update Mascot when language is explicitly selected
   const handleLanguageSelect = (lang: "english" | "hindi") => {
     setSelectedLanguage(lang);
-    setActiveTwister(null); // Reset active twister
+    setActiveTwister(null);
+
+    const phrases = haryanviPhrases.devanagari;
+    const beforeRecs = phrases.before_recording;
+    setMascotPhrase(beforeRecs[Math.floor(Math.random() * beforeRecs.length)]);
+    setMascotState("thinking");
   };
 
   const handleTwisterSelect = (twister: Twister) => {
     setActiveTwister(twister);
     setMascotState("happy");
-    const highScores = getPhrases().high_score;
+    const highScores = haryanviPhrases.devanagari.high_score;
     setMascotPhrase(highScores[Math.floor(Math.random() * highScores.length)]);
+  };
+
+  // Phase 4: Surprise Me (Random Selector)
+  const handleSurpriseMe = () => {
+    // If no language is selected, pick one randomly first
+    let currentLang = selectedLanguage;
+    if (!currentLang) {
+      currentLang = Math.random() > 0.5 ? "english" : "hindi";
+      setSelectedLanguage(currentLang);
+    }
+
+    const list = currentLang === "english" ? englishTwisters : hindiTwisters;
+    const randomTwister = list[Math.floor(Math.random() * list.length)];
+    setActiveTwister(randomTwister);
+
+    // Reaction
+    const phrases = haryanviPhrases.devanagari;
+    const achievements = phrases.achievement_unlock;
+    setMascotPhrase(achievements[Math.floor(Math.random() * achievements.length)]);
+    setMascotState("happy");
+  };
+
+  // Phase 5: Load Daily Challenge in practice space
+  const handleLoadDailyChallenge = () => {
+    if (!dailyChallenge) return;
+    setSelectedLanguage(dailyChallenge.language);
+    setActiveTwister(dailyChallenge.twister);
+
+    const phrases = haryanviPhrases.devanagari;
+    setMascotPhrase("राम राम! आज का डेली चैलेंज लोड हो गया सै। जमा साफ बोलियो!");
+    setMascotState("thinking");
   };
 
   const twistersToDisplay = selectedLanguage === "english" ? englishTwisters : selectedLanguage === "hindi" ? hindiTwisters : [];
 
   return (
-    <div className="flex flex-col flex-1 bg-zinc-950 text-white min-h-[calc(100vh-4rem)] p-6 relative">
+    <div className="flex flex-col flex-1 bg-zinc-950 text-white min-h-[calc(100vh-4rem)] p-6 relative pb-16">
       {/* Background glow effects */}
       <div className="absolute top-1/3 left-1/4 w-[350px] h-[350px] bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
       <div className="absolute bottom-1/4 right-1/4 w-[350px] h-[350px] bg-purple-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
       <div className="relative z-10 max-w-5xl mx-auto w-full flex flex-col items-center">
+        
         {/* Page Header */}
         <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-500/10 px-3 py-1 text-xs font-medium text-indigo-400 border border-indigo-500/20 mb-4">
           🎙️ Tongue Twister Arena
         </span>
-        <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl bg-gradient-to-b from-white via-zinc-200 to-zinc-500 bg-clip-text text-transparent mb-8">
+        <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl bg-gradient-to-b from-white via-zinc-200 to-zinc-500 bg-clip-text text-transparent mb-6">
           Select Your Speaking Challenge
         </h1>
 
+        {/* Phase 5: Daily Challenge Mini Banner */}
+        {dailyChallenge && (
+          <div className="w-full max-w-2xl bg-zinc-900/60 border border-white/5 rounded-xl p-4 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📅</span>
+              <div className="text-left">
+                <p className="text-xs font-bold text-indigo-400 uppercase tracking-wide">Daily Challenge available</p>
+                <p className="text-sm font-medium text-zinc-300 line-clamp-1 italic">"{dailyChallenge.twister.text}"</p>
+              </div>
+            </div>
+            <button
+              onClick={handleLoadDailyChallenge}
+              className="h-8 px-4 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 text-xs font-semibold border border-indigo-500/30 transition-all"
+            >
+              Load Daily Challenge
+            </button>
+          </div>
+        )}
+
         {/* Mascot & Instructions Section */}
-        <div className="flex flex-col items-center mb-10 w-full">
+        <div className="flex flex-col items-center mb-8 w-full">
           <Mascot state={mascotState} phrase={mascotPhrase} />
         </div>
 
-        {/* Phase 3: Language Selectors */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-2xl mb-12">
-          {/* English Selector */}
-          <button
-            onClick={() => handleLanguageSelect("english")}
-            className={`group flex flex-col items-center justify-center p-6 rounded-2xl border text-center transition-all duration-300 ${
-              selectedLanguage === "english"
-                ? "border-indigo-500 bg-indigo-500/10 shadow-lg shadow-indigo-500/10"
-                : "border-white/10 bg-zinc-900/40 hover:border-white/20 hover:bg-zinc-900/60"
-            }`}
-          >
-            <span className="text-4xl mb-3 group-hover:scale-110 transition-transform">🇬🇧</span>
-            <h3 className="text-xl font-bold mb-1">English Twisters</h3>
-            <p className="text-xs text-zinc-400">Practice English speed and articulation.</p>
-            <span className="mt-4 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400">
-              20 Twisters
-            </span>
-          </button>
+        {/* Phase 3: Language Selectors & Shuffle */}
+        <div className="flex flex-col items-center w-full max-w-2xl mb-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full mb-6">
+            {/* English Selector */}
+            <button
+              onClick={() => handleLanguageSelect("english")}
+              className={`group flex flex-col items-center justify-center p-6 rounded-2xl border text-center transition-all duration-300 ${
+                selectedLanguage === "english"
+                  ? "border-indigo-500 bg-indigo-500/10 shadow-lg shadow-indigo-500/10"
+                  : "border-white/10 bg-zinc-900/40 hover:border-white/20 hover:bg-zinc-900/60"
+              }`}
+            >
+              <span className="text-4xl mb-3 group-hover:scale-110 transition-transform">🇬🇧</span>
+              <h3 className="text-xl font-bold mb-1">English Twisters</h3>
+              <p className="text-xs text-zinc-400">Practice English speed and articulation.</p>
+              <span className="mt-4 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400">
+                20 Twisters
+              </span>
+            </button>
 
-          {/* Hindi Selector */}
+            {/* Hindi Selector */}
+            <button
+              onClick={() => handleLanguageSelect("hindi")}
+              className={`group flex flex-col items-center justify-center p-6 rounded-2xl border text-center transition-all duration-300 ${
+                selectedLanguage === "hindi"
+                  ? "border-purple-500 bg-purple-500/10 shadow-lg shadow-purple-500/10"
+                  : "border-white/10 bg-zinc-900/40 hover:border-white/20 hover:bg-zinc-900/60"
+              }`}
+            >
+              <span className="text-4xl mb-3 group-hover:scale-110 transition-transform">🇮🇳</span>
+              <h3 className="text-xl font-bold mb-1">Hindi Twisters</h3>
+              <p className="text-xs text-zinc-400">हिन्दी साहित्य की शुद्धता और लय का अभ्यास करें।</p>
+              <span className="mt-4 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400">
+                20 Twisters
+              </span>
+            </button>
+          </div>
+
+          {/* Phase 4: Surprise Me Button */}
           <button
-            onClick={() => handleLanguageSelect("hindi")}
-            className={`group flex flex-col items-center justify-center p-6 rounded-2xl border text-center transition-all duration-300 ${
-              selectedLanguage === "hindi"
-                ? "border-purple-500 bg-purple-500/10 shadow-lg shadow-purple-500/10"
-                : "border-white/10 bg-zinc-900/40 hover:border-white/20 hover:bg-zinc-900/60"
-            }`}
+            onClick={handleSurpriseMe}
+            className="flex items-center justify-center gap-2 px-6 h-11 rounded-xl bg-white/5 border border-white/10 text-sm font-semibold hover:bg-white/10 text-indigo-300 hover:text-white transition-all shadow-md w-full sm:w-auto"
           >
-            <span className="text-4xl mb-3 group-hover:scale-110 transition-transform">🇮🇳</span>
-            <h3 className="text-xl font-bold mb-1">Hindi Twisters</h3>
-            <p className="text-xs text-zinc-400">हिन्दी साहित्य की शुद्धता और लय का अभ्यास करें।</p>
-            <span className="mt-4 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400">
-              20 Twisters
-            </span>
+            🎲 Surprise Me! (Random Selection)
           </button>
         </div>
 
