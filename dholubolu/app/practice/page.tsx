@@ -20,11 +20,6 @@ export default function PracticePage() {
   const [isPaused, setIsPaused] = useState(false);
   const [speechRate, setSpeechRate] = useState<number>(1.0);
 
-  // Get matching phrase array based on script (Latin if no language selected, Devanagari if language selected)
-  const getPhrases = (isLangSelected: boolean) => {
-    return isLangSelected ? haryanviPhrases.devanagari : haryanviPhrases.latin;
-  };
-
   // Load Daily Challenge and check URL params on mount
   useEffect(() => {
     const daily = getDailyChallenge();
@@ -137,7 +132,6 @@ export default function PracticePage() {
     const utterance = new SpeechSynthesisUtterance(activeTwister.text);
     const voices = synth.getVoices();
     
-    // Attempt to locate correct regional voice accent
     let matchedVoice = null;
     if (selectedLanguage === "hindi") {
       matchedVoice = voices.find(v => v.lang.startsWith("hi")) || null;
@@ -213,36 +207,36 @@ export default function PracticePage() {
   const twistersToDisplay = selectedLanguage === "english" ? englishTwisters : selectedLanguage === "hindi" ? hindiTwisters : [];
 
   return (
-    <div className="flex flex-col flex-1 bg-zinc-950 text-white min-h-[calc(100vh-4rem)] p-6 relative pb-16">
+    <div className="flex flex-col flex-1 bg-[#FAF9F5] dark:bg-[#090d16] text-slate-800 dark:text-zinc-200 min-h-[calc(100vh-4rem)] p-6 relative pb-16 transition-colors duration-300">
       {/* Background glows */}
-      <div className="absolute top-1/3 left-1/4 w-[350px] h-[350px] bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-[350px] h-[350px] bg-purple-500/5 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute top-1/3 left-1/4 w-[350px] h-[350px] bg-sky-200/10 dark:bg-sky-900/5 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute bottom-1/4 right-1/4 w-[350px] h-[350px] bg-indigo-100/20 dark:bg-indigo-950/5 rounded-full blur-3xl pointer-events-none"></div>
 
       <div className="relative z-10 max-w-5xl mx-auto w-full flex flex-col items-center">
         
         {/* Page Header */}
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-500/10 px-3 py-1 text-xs font-medium text-indigo-400 border border-indigo-500/20 mb-4">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 dark:bg-sky-950/40 px-3 py-1 text-xs font-semibold text-sky-600 dark:text-sky-400 border border-sky-100 dark:border-sky-900/40 mb-4">
           🎙️ Tongue Twister Arena
         </span>
-        <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl bg-gradient-to-b from-white via-zinc-200 to-zinc-500 bg-clip-text text-transparent mb-6">
+        <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl text-slate-800 dark:text-zinc-100 mb-6">
           Select Your Speaking Challenge
         </h1>
 
         {/* Phase 5: Daily Challenge Mini Banner */}
         {dailyChallenge && (
-          <div className="w-full max-w-2xl bg-zinc-900/60 border border-white/5 rounded-xl p-4 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="w-full max-w-2xl bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 rounded-xl p-4 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
             <div className="flex items-center gap-3">
               <span className="text-2xl">📅</span>
               <div className="text-left">
-                <p className="text-xs font-bold text-indigo-400 uppercase tracking-wide">Daily Challenge available</p>
-                <p className="text-sm font-medium text-zinc-300 line-clamp-1 italic">"{dailyChallenge.twister.text}"</p>
+                <p className="text-xs font-bold text-sky-600 dark:text-sky-400 uppercase tracking-wide">Daily Challenge available</p>
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 line-clamp-1 italic">"{dailyChallenge.twister.text}"</p>
               </div>
             </div>
             <button
               onClick={handleLoadDailyChallenge}
-              className="h-8 px-4 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 text-xs font-semibold border border-indigo-500/30 transition-all"
+              className="h-8 px-4 rounded-lg bg-sky-50 dark:bg-sky-950/40 hover:bg-sky-100 dark:hover:bg-sky-900 text-sky-600 dark:text-sky-400 border border-sky-100 dark:border-sky-900/30 font-bold text-xs transition-all"
             >
-              Load Daily Challenge
+              Load Challenge
             </button>
           </div>
         )}
@@ -259,14 +253,14 @@ export default function PracticePage() {
               onClick={() => handleLanguageSelect("english")}
               className={`group flex flex-col items-center justify-center p-6 rounded-2xl border text-center transition-all duration-300 ${
                 selectedLanguage === "english"
-                  ? "border-indigo-500 bg-indigo-500/10 shadow-lg shadow-indigo-500/10"
-                  : "border-white/10 bg-zinc-900/40 hover:border-white/20 hover:bg-zinc-900/60"
+                  ? "border-sky-400 dark:border-sky-500 bg-sky-50/70 dark:bg-sky-950/30 shadow-sm"
+                  : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/30 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
               }`}
             >
               <span className="text-4xl mb-3 group-hover:scale-110 transition-transform">🇬🇧</span>
-              <h3 className="text-xl font-bold mb-1">English Twisters</h3>
-              <p className="text-xs text-zinc-400">Practice English speed and articulation.</p>
-              <span className="mt-4 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400">
+              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-1">English Twisters</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Practice English speed and articulation.</p>
+              <span className="mt-4 text-xs font-bold px-2.5 py-0.5 rounded-full bg-sky-50 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400 border border-sky-100 dark:border-sky-900/30">
                 20 Twisters
               </span>
             </button>
@@ -275,14 +269,14 @@ export default function PracticePage() {
               onClick={() => handleLanguageSelect("hindi")}
               className={`group flex flex-col items-center justify-center p-6 rounded-2xl border text-center transition-all duration-300 ${
                 selectedLanguage === "hindi"
-                  ? "border-purple-500 bg-purple-500/10 shadow-lg shadow-purple-500/10"
-                  : "border-white/10 bg-zinc-900/40 hover:border-white/20 hover:bg-zinc-900/60"
+                  ? "border-purple-400 dark:border-purple-500 bg-purple-50/70 dark:bg-purple-950/30 shadow-sm"
+                  : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/30 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
               }`}
             >
               <span className="text-4xl mb-3 group-hover:scale-110 transition-transform">🇮🇳</span>
-              <h3 className="text-xl font-bold mb-1">Hindi Twisters</h3>
-              <p className="text-xs text-zinc-400">हिन्दी साहित्य की शुद्धता और लय का अभ्यास करें।</p>
-              <span className="mt-4 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400">
+              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-1">Hindi Twisters</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">हिन्दी साहित्य की शुद्धता और लय का अभ्यास करें।</p>
+              <span className="mt-4 text-xs font-bold px-2.5 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-900/30">
                 20 Twisters
               </span>
             </button>
@@ -290,7 +284,7 @@ export default function PracticePage() {
 
           <button
             onClick={handleSurpriseMe}
-            className="flex items-center justify-center gap-2 px-6 h-11 rounded-xl bg-white/5 border border-white/10 text-sm font-semibold hover:bg-white/10 text-indigo-300 hover:text-white transition-all shadow-md w-full sm:w-auto"
+            className="flex items-center justify-center gap-2 px-6 h-11 rounded-xl bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800 text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white transition-all shadow-sm w-full sm:w-auto"
           >
             🎲 Surprise Me! (Random Selection)
           </button>
@@ -298,47 +292,47 @@ export default function PracticePage() {
 
         {/* Selected Twister Workspace */}
         {activeTwister && (
-          <div className="w-full max-w-2xl rounded-2xl border border-white/10 bg-zinc-900/40 p-8 backdrop-blur-md shadow-2xl mb-12 flex flex-col items-center text-center animate-fade-in">
-            <div className="flex items-center justify-between w-full border-b border-white/5 pb-4 mb-6">
-              <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider">Active Challenge</span>
-              <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${
-                activeTwister.difficulty === "Beginner" ? "bg-emerald-500/20 text-emerald-400" :
-                activeTwister.difficulty === "Intermediate" ? "bg-amber-500/20 text-amber-400" :
-                activeTwister.difficulty === "Advanced" ? "bg-orange-500/20 text-orange-400" :
-                "bg-red-500/20 text-red-400"
+          <div className="w-full max-w-2xl rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/30 p-8 shadow-md dark:shadow-none mb-12 flex flex-col items-center text-center animate-fade-in">
+            <div className="flex items-center justify-between w-full border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
+              <span className="text-xs text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Active Challenge</span>
+              <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold ${
+                activeTwister.difficulty === "Beginner" ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30" :
+                activeTwister.difficulty === "Intermediate" ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-900/30" :
+                activeTwister.difficulty === "Advanced" ? "bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400 border border-orange-100 dark:border-orange-900/30" :
+                "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border border-red-100 dark:border-red-900/30"
               }`}>
                 {activeTwister.difficulty}
               </span>
             </div>
 
-            <p className="text-2xl font-bold tracking-wide text-zinc-100 italic px-6 py-4 bg-white/5 rounded-xl border border-white/5 w-full mb-6">
+            <p className="text-2xl font-bold tracking-wide text-slate-800 dark:text-zinc-100 italic px-6 py-4 bg-slate-50 dark:bg-slate-950/40 rounded-xl border border-slate-100 dark:border-slate-800 w-full mb-6">
               "{activeTwister.text}"
             </p>
 
             {/* TTS & Speech Controls Workspace */}
-            <div className="w-full border-t border-white/5 pt-6 flex flex-col gap-6 items-center">
+            <div className="w-full border-t border-slate-100 dark:border-slate-800 pt-6 flex flex-col gap-6 items-center">
               {/* TTS Controls Panel */}
-              <div className="flex flex-wrap items-center justify-center gap-4 bg-zinc-950/80 p-3 rounded-xl border border-white/5 w-full max-w-md">
+              <div className="flex flex-wrap items-center justify-center gap-4 bg-slate-50 dark:bg-slate-950/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 w-full max-w-md shadow-inner">
                 
                 {/* Play / Pause Toggle Button */}
                 {!isPlaying && !isPaused ? (
                   <button
                     onClick={handleTTSPlay}
-                    className="flex h-9 items-center justify-center gap-1.5 rounded-lg bg-indigo-500 hover:bg-indigo-600 px-4 text-xs font-bold text-white transition-colors"
+                    className="flex h-9 items-center justify-center gap-1.5 rounded-lg bg-sky-600 dark:bg-sky-500 hover:bg-sky-700 dark:hover:bg-sky-600 px-4 text-xs font-bold text-white transition-colors shadow-sm"
                   >
                     <span>🔊</span> Play Pronunciation
                   </button>
                 ) : isPlaying ? (
                   <button
                     onClick={handleTTSPause}
-                    className="flex h-9 items-center justify-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 px-4 text-xs font-bold text-zinc-950 transition-colors animate-pulse"
+                    className="flex h-9 items-center justify-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 px-4 text-xs font-bold text-white transition-colors shadow-sm"
                   >
                     <span>⏸️</span> Pause Speech
                   </button>
                 ) : (
                   <button
                     onClick={handleTTSPlay}
-                    className="flex h-9 items-center justify-center gap-1.5 rounded-lg bg-indigo-500 hover:bg-indigo-600 px-4 text-xs font-bold text-white transition-colors"
+                    className="flex h-9 items-center justify-center gap-1.5 rounded-lg bg-sky-600 dark:bg-sky-500 hover:bg-sky-700 dark:hover:bg-sky-600 px-4 text-xs font-bold text-white transition-colors shadow-sm"
                   >
                     <span>▶️</span> Resume Speech
                   </button>
@@ -348,7 +342,7 @@ export default function PracticePage() {
                 {(isPlaying || isPaused) && (
                   <button
                     onClick={handleTTSStop}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-white/5 transition-colors"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 shadow-sm transition-colors"
                     title="Stop and Reset"
                   >
                     ⏹️
@@ -356,17 +350,17 @@ export default function PracticePage() {
                 )}
 
                 {/* Speech Speed (Rate) Selector */}
-                <div className="flex items-center gap-1 border-l border-white/10 pl-3">
-                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wide mr-1">Speed</span>
+                <div className="flex items-center gap-1 border-l border-slate-200 dark:border-slate-800 pl-3">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide mr-1">Speed</span>
                   {[0.75, 1.0, 1.25].map((rate) => (
                     <button
                       key={rate}
                       onClick={() => setSpeechRate(rate)}
                       disabled={isPlaying || isPaused}
-                      className={`text-[10px] font-semibold px-2 py-1 rounded-md transition-all ${
+                      className={`text-[10px] font-bold px-2 py-1 rounded-md transition-all ${
                         speechRate === rate
-                          ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30"
-                          : "text-zinc-400 hover:text-white border border-transparent disabled:opacity-50"
+                          ? "bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 border border-sky-100 dark:border-sky-900/30"
+                          : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent disabled:opacity-50"
                       }`}
                     >
                       {rate}x
@@ -378,7 +372,7 @@ export default function PracticePage() {
 
               {/* Voice Recording Button Scaffolding (Phase 7 target) */}
               <div className="w-full flex justify-center">
-                <button className="h-12 w-full max-w-xs rounded-xl bg-gradient-to-r from-red-500 to-rose-600 hover:opacity-90 transition-all text-sm font-semibold text-white shadow-lg shadow-red-500/10 flex items-center justify-center gap-2">
+                <button className="h-12 w-full max-w-xs rounded-xl bg-slate-800 dark:bg-slate-150 hover:bg-slate-900 dark:hover:bg-white text-white dark:text-slate-900 transition-all text-sm font-semibold shadow-md flex items-center justify-center gap-2">
                   🎙️ Start Voice Recording
                 </button>
               </div>
@@ -389,7 +383,7 @@ export default function PracticePage() {
         {/* Display twister list once language is selected */}
         {selectedLanguage && (
           <div className="w-full max-w-4xl animate-fade-in">
-            <h2 className="text-xl font-bold text-zinc-300 mb-6 border-b border-white/5 pb-2">
+            <h2 className="text-xl font-bold text-slate-800 dark:text-zinc-200 mb-6 border-b border-slate-200 dark:border-slate-800 pb-2">
               Select a {selectedLanguage === "english" ? "English" : "Hindi"} Tongue Twister to Practice
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -397,24 +391,24 @@ export default function PracticePage() {
                 <div
                   key={twister.id}
                   onClick={() => handleTwisterSelect(twister)}
-                  className={`p-5 rounded-xl border text-left cursor-pointer transition-all duration-200 ${
+                  className={`p-5 rounded-xl border text-left cursor-pointer transition-all duration-200 bg-white dark:bg-slate-900/35 ${
                     activeTwister?.id === twister.id && activeTwister?.difficulty === twister.difficulty
-                      ? "border-indigo-500 bg-indigo-500/5 shadow-md"
-                      : "border-white/5 bg-zinc-900/30 hover:border-white/10 hover:bg-zinc-900/50"
+                      ? "border-sky-400 dark:border-sky-500 bg-sky-50/20 dark:bg-sky-950/15 shadow-sm"
+                      : "border-slate-100 dark:border-slate-800/80 hover:border-slate-350 dark:hover:border-slate-700 hover:shadow-sm"
                   }`}
                 >
                   <div className="flex justify-between items-center mb-3">
-                    <span className="text-xs text-zinc-500">ID: #{twister.id}</span>
+                    <span className="text-xs text-slate-400 dark:text-slate-500">ID: #{twister.id}</span>
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                      twister.difficulty === "Beginner" ? "bg-emerald-500/10 text-emerald-400" :
-                      twister.difficulty === "Intermediate" ? "bg-amber-500/10 text-amber-400" :
-                      twister.difficulty === "Advanced" ? "bg-orange-500/10 text-orange-400" :
-                      "bg-red-500/10 text-red-400"
+                      twister.difficulty === "Beginner" ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400" :
+                      twister.difficulty === "Intermediate" ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400" :
+                      twister.difficulty === "Advanced" ? "bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400" :
+                      "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400"
                     }`}>
                       {twister.difficulty}
                     </span>
                   </div>
-                  <p className="text-sm font-medium line-clamp-3 text-zinc-200">
+                  <p className="text-sm font-medium line-clamp-3 text-slate-700 dark:text-slate-300">
                     {twister.text}
                   </p>
                 </div>
