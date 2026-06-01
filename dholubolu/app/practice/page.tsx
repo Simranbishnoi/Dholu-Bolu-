@@ -5,6 +5,12 @@ import Mascot from "../components/DolphinMascot";
 import { haryanviPhrases } from "../data/haryanvi_phrases";
 import { englishTwisters, hindiTwisters, Twister } from "../data/twisters";
 import { getDailyChallenge, DailyChallengeInfo } from "../utils/dailyChallenge";
+import { calculatePracticeScore } from "../utils/scoring";
+
+// Safely access SpeechRecognition in browsers
+const SpeechRecognition = typeof window !== "undefined"
+  ? ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)
+  : null;
 
 export default function PracticePage() {
   const [selectedLanguage, setSelectedLanguage] = useState<"english" | "hindi" | null>(null);
@@ -29,13 +35,54 @@ export default function PracticePage() {
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
   const [recordingError, setRecordingError] = useState<string | null>(null);
 
-  // Repetition & Mock Accuracy States
+  // Speech to Text & Loop Target States
+  const [transcription, setTranscription] = useState<string>("");
   const [repeatTarget, setRepeatTarget] = useState<number>(1);
   const [detectedLoops, setDetectedLoops] = useState<number>(0);
   const [accuracyScore, setAccuracyScore] = useState<number | null>(null);
   const [wrongWordsCount, setWrongWordsCount] = useState<number>(0);
   const [missingWordsCount, setMissingWordsCount] = useState<number>(0);
+  
   const recordingStartTimeRef = useRef<number>(0);
+  const recognitionRef = useRef<any>(null);
+  const transcriptionRef = useRef<string>("");
+  const audioUrlRef = useRef<string | null>(null);
+  const recognitionActiveRef = useRef<boolean>(false);
+
+  // Phase 9: Process recording results with real similarity and loop counting
+  const processRecordingResults = (audioUrl: string, finalTranscription: string) => {
+    if (!activeTwister) return;
+
+    const scoreResult = calculatePracticeScore(
+      finalTranscription,
+      activeTwister.text,
+      selectedLanguage || "english",
+      repeatTarget
+    );
+
+    setDetectedLoops(scoreResult.detectedLoops);
+    setAccuracyScore(scoreResult.accuracyScore);
+    setWrongWordsCount(scoreResult.wrongWordsCount);
+    setMissingWordsCount(scoreResult.missingWordsCount);
+
+    // Select and trigger Haryanvi voice output based on score
+    const phrases = haryanviPhrases.devanagari;
+    let chosenPhrase = "";
+    
+    if (scoreResult.accuracyScore >= 90) {
+      setMascotState("happy");
+      chosenPhrase = phrases.high_score[Math.floor(Math.random() * phrases.high_score.length)];
+    } else if (scoreResult.accuracyScore >= 75) {
+      setMascotState("thinking");
+      chosenPhrase = phrases.medium_score[Math.floor(Math.random() * phrases.medium_score.length)];
+    } else {
+      setMascotState("confused");
+      chosenPhrase = phrases.low_score[Math.floor(Math.random() * phrases.low_score.length)];
+    }
+
+    setMascotPhrase(chosenPhrase);
+    speakHaryanviPhrase(chosenPhrase);
+  };
 
   // Load Daily Challenge and check URL params on mount
   useEffect(() => {
@@ -76,6 +123,9 @@ export default function PracticePage() {
       if (audioElement) {
         audioElement.pause();
       }
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
     };
   }, [audioElement]);
 
@@ -95,6 +145,7 @@ export default function PracticePage() {
     setRecordingError(null);
     setDetectedLoops(0);
     setAccuracyScore(null);
+    setTranscription("");
   }, [activeTwister]);
 
   // Read Haryanvi Feedback phrase out loud using SpeechSynthesis
@@ -102,18 +153,17 @@ export default function PracticePage() {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
 
     const synth = window.speechSynthesis;
-    synth.cancel(); // Cancel any ongoing speech
+    synth.cancel();
 
     const utterance = new SpeechSynthesisUtterance(phraseText);
     const voices = synth.getVoices();
 
-    // Haryanvi feedback uses Devanagari script, read with Hindi regional voice accent
     const hindiVoice = voices.find(v => v.lang.startsWith("hi")) || null;
     if (hindiVoice) {
       utterance.voice = hindiVoice;
     }
 
-    utterance.rate = 0.95; // Speak at a natural Haryanvi pace
+    utterance.rate = 0.95;
     synth.speak(utterance);
   };
 
@@ -269,6 +319,10 @@ export default function PracticePage() {
     setAudioChunks([]);
     setDetectedLoops(0);
     setAccuracyScore(null);
+    setTranscription("");
+    transcriptionRef.current = "";
+    audioUrlRef.current = null;
+    recognitionActiveRef.current = false;
 
     if (typeof window === "undefined" || !navigator.mediaDevices) {
       setRecordingError("Voice capture is not supported in this browser.");
@@ -290,6 +344,7 @@ export default function PracticePage() {
         const audioBlob = new Blob(chunks, { type: "audio/webm" });
         const audioUrl = URL.createObjectURL(audioBlob);
         setRecordedUrl(audioUrl);
+        audioUrlRef.current = audioUrl;
 
         // Stop all track media streams to release mic hardware lock
         stream.getTracks().forEach((track) => track.stop());
@@ -299,39 +354,51 @@ export default function PracticePage() {
           navigator.vibrate(200);
         }
 
-        // Calculate active speaking duration to simulate loop repeats
-        const durationSec = (Date.now() - recordingStartTimeRef.current) / 1000;
-        const calculatedLoops = Math.max(1, Math.min(repeatTarget + 5, Math.floor(durationSec / 3.0)));
-
-        setDetectedLoops(calculatedLoops);
-
-        // Calculate score & wrong/missing words
-        const mockScore = Math.floor(Math.random() * 25) + 75; // 75% to 99%
-        const wrongWords = mockScore > 90 ? 0 : Math.floor(Math.random() * 2) + 1;
-        const missingWords = mockScore > 95 ? 0 : Math.floor(Math.random() * 2);
-
-        setAccuracyScore(mockScore);
-        setWrongWordsCount(wrongWords);
-        setMissingWordsCount(missingWords);
-
-        // Select and trigger Haryanvi voice output based on score
-        const phrases = haryanviPhrases.devanagari;
-        let chosenPhrase = "";
-        
-        if (mockScore >= 90) {
-          setMascotState("happy");
-          chosenPhrase = phrases.high_score[Math.floor(Math.random() * phrases.high_score.length)];
-        } else if (mockScore >= 75) {
-          setMascotState("thinking");
-          chosenPhrase = phrases.medium_score[Math.floor(Math.random() * phrases.medium_score.length)];
+        // Stop Speech Recognition if active
+        if (recognitionRef.current && recognitionActiveRef.current) {
+          recognitionRef.current.stop();
         } else {
-          setMascotState("confused");
-          chosenPhrase = phrases.low_score[Math.floor(Math.random() * phrases.low_score.length)];
+          // Speech recognition wasn't active or already ended
+          processRecordingResults(audioUrl, transcriptionRef.current);
         }
-
-        setMascotPhrase(chosenPhrase);
-        speakHaryanviPhrase(chosenPhrase);
       };
+
+      // Phase 8: Initialize Speech Recognition
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = false;
+        recognition.lang = selectedLanguage === "hindi" ? "hi-IN" : "en-US";
+
+        recognition.onresult = (event: any) => {
+          let chunkText = "";
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              chunkText += event.results[i][0].transcript;
+            }
+          }
+          if (chunkText) {
+            const updated = (transcriptionRef.current ? " " : "") + chunkText;
+            transcriptionRef.current = updated;
+            setTranscription(updated);
+          }
+        };
+
+        recognition.onend = () => {
+          recognitionActiveRef.current = false;
+          if (audioUrlRef.current !== null) {
+            processRecordingResults(audioUrlRef.current, transcriptionRef.current);
+          }
+        };
+
+        recognition.onerror = (event: any) => {
+          console.error("Speech Recognition Error:", event.error);
+        };
+
+        recognitionRef.current = recognition;
+        recognitionActiveRef.current = true;
+        recognition.start();
+      }
 
       // Set start time anchor
       recordingStartTimeRef.current = Date.now();
@@ -398,6 +465,7 @@ export default function PracticePage() {
     setAudioChunks([]);
     setDetectedLoops(0);
     setAccuracyScore(null);
+    setTranscription("");
 
     const chosenPhrase = selectedLanguage === "hindi"
       ? "चल दोबारा कोशिश करांगे, अबकी बार बढ़िया बोलियो।"
@@ -570,7 +638,7 @@ export default function PracticePage() {
                 {(isPlaying || isPaused) && (
                   <button
                     onClick={handleTTSStop}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-805 text-slate-500 dark:text-slate-400 shadow-sm transition-colors"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 shadow-sm transition-colors"
                     title="Stop and Reset"
                   >
                     ⏹️
@@ -610,7 +678,7 @@ export default function PracticePage() {
                       className={`text-xs font-bold px-2.5 py-1 rounded-md transition-all ${
                         repeatTarget === target
                           ? "bg-sky-600 text-white shadow-sm"
-                          : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-650 dark:text-slate-455 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
+                          : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-650 dark:text-slate-450 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
                       }`}
                     >
                       {target}x
@@ -688,7 +756,17 @@ export default function PracticePage() {
                           </div>
                         </div>
 
-                        {/* Level Up Button if they matched loop target */}
+                        {/* Real-time speech transcription display (Phase 8 feature) */}
+                        {transcription && (
+                          <div className="bg-slate-50 dark:bg-slate-955/40 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 text-xs text-left w-full mt-1">
+                            <span className="font-bold text-slate-400 block mb-1">What We Heard (STT):</span>
+                            <p className="font-semibold text-slate-700 dark:text-zinc-200 italic">
+                              "{transcription}"
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Level Up Button */}
                         <div className="flex gap-2 w-full mt-2">
                           <button
                             onClick={handlePlusTenChallenge}
@@ -713,7 +791,7 @@ export default function PracticePage() {
                       </button>
                       <button
                         onClick={resetRecording}
-                        className="h-11 px-6 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-650 dark:text-slate-450 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold"
+                        className="h-11 px-6 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-655 dark:text-slate-450 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold"
                       >
                         🔄 Record Again
                       </button>
