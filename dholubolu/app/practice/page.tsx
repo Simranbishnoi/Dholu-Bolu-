@@ -6,6 +6,7 @@ import { haryanviPhrases } from "../data/haryanvi_phrases";
 import { englishTwisters, hindiTwisters, Twister } from "../data/twisters";
 import { getDailyChallenge, DailyChallengeInfo } from "../utils/dailyChallenge";
 import { calculatePracticeScore } from "../utils/scoring";
+import { saveAttempt } from "../utils/db";
 
 // Safely access SpeechRecognition in browsers
 const SpeechRecognition = typeof window !== "undefined"
@@ -82,6 +83,26 @@ export default function PracticePage() {
 
     setMascotPhrase(chosenPhrase);
     speakHaryanviPhrase(chosenPhrase);
+
+    // Phase 11: Save attempt to database (localStorage)
+    try {
+      saveAttempt({
+        twisterId: activeTwister.id,
+        language: selectedLanguage || "english",
+        difficulty: activeTwister.difficulty,
+        twisterText: activeTwister.text,
+        transcription: finalTranscription,
+        accuracyScore: scoreResult.accuracyScore,
+        detectedLoops: scoreResult.detectedLoops,
+        repeatTarget: repeatTarget,
+        wrongWordsCount: scoreResult.wrongWordsCount,
+        missingWordsCount: scoreResult.missingWordsCount,
+        extraWordsCount: scoreResult.extraWordsCount,
+      });
+      console.log("Successfully saved practice attempt to local database storage!");
+    } catch (error) {
+      console.error("Failed to save practice attempt to local storage:", error);
+    }
   };
 
   // Load Daily Challenge and check URL params on mount
