@@ -15,10 +15,10 @@ export default function Home() {
     // Choose random welcome and signature phrase in Latin script on load
     const welcomes = haryanviPhrases.latin.welcome;
     const signatures = haryanviPhrases.latin.signature_phrases;
-    
+
     setWelcomePhrase(welcomes[Math.floor(Math.random() * welcomes.length)]);
     setSignaturePhrase(signatures[Math.floor(Math.random() * signatures.length)]);
-    
+
     // Set daily challenge
     setDaily(getDailyChallenge());
   }, []);
@@ -35,11 +35,11 @@ export default function Home() {
 
         {/* Hero Title */}
         <h1 className="text-4xl font-extrabold tracking-tight sm:text-6xl text-slate-800 dark:text-zinc-100 max-w-3xl leading-[1.15] mb-3 mt-4">
-          Unleash Your Tongue with{" "}
+          Jeebh ne khol de{" "}
           <span className="bg-gradient-to-r from-sky-600 to-indigo-600 dark:from-sky-400 dark:to-indigo-400 bg-clip-text text-transparent font-black">
-            AI-Powered
-          </span>{" "}
-          Speech Training
+            AI ki gel
+          </span>
+          , bol saaf te chha ja!
         </h1>
 
         {/* Mascot Signature / Description */}
@@ -92,30 +92,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* Features Preview Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full text-left">
-          <div className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/30 p-6 shadow-sm dark:shadow-none hover:border-sky-200 dark:hover:border-sky-900/30 transition-all duration-300">
-            <div className="text-3xl mb-4">🎙️</div>
-            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-2">Real-time Recognition</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-              Web Speech API captures your spoken attempts locally for instant transcriptions.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/30 p-6 shadow-sm dark:shadow-none hover:border-sky-200 dark:hover:border-sky-900/30 transition-all duration-300">
-            <div className="text-3xl mb-4">📈</div>
-            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-2">Accuracy Scoring</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-              Compare spoken word similarity against target phrases for performance scores.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/30 p-6 shadow-sm dark:shadow-none hover:border-sky-200 dark:hover:border-sky-900/30 transition-all duration-300">
-            <div className="text-3xl mb-4">🐬</div>
-            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-2">Dolphin Mentor</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-              A playful emotional mascot that reacts dynamically in Haryanvi dialects to your speech accuracy.
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   );
